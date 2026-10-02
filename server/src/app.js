@@ -18,10 +18,25 @@ app.use(
   })
 );
 
-// CORS configuration (strictly restricted)
+// CORS configuration
 app.use(
   cors({
-    origin: [config.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174'],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, postman)
+      if (!origin) return callback(null, true);
+      const allowedOrigins = [
+        config.CLIENT_URL,
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:5174',
+        'http://127.0.0.1:5174'
+      ].filter(Boolean);
+
+      if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
