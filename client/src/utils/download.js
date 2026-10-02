@@ -108,7 +108,8 @@ export async function openReportPrint(params = {}) {
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
     .join('&');
 
-  const url = `/api/reports/html?${queryString}`;
+  const apiBase = (api.defaults.baseURL || '/api').replace(/\/+$/, '');
+  const url = `${apiBase}/reports/html?${queryString}`;
   const win = window.open(url, '_blank');
   if (!win) {
     window.location.href = url;
