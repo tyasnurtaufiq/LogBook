@@ -1,0 +1,19 @@
+{
+  "name": "e-pres-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistem Presensi Pribadi Monorepo (Vue 3 + Express + PostgreSQL)",
+  "scripts": {
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run dev:server\" \"npm run dev:client\"",
+    "migrate": "npm --prefix server run db:migrate",
+    "seed": "npm --prefix server run db:seed",
+    "test:server": "npm --prefix server test",
+    "build:client": "npm --prefix client run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
