@@ -1,162 +1,232 @@
-# E-PRES • Sistem Presensi Elektronik Pribadi (Personal Attendance System)
+# E-PRES • LogBook (Personal Electronic Attendance System)
 
-Aplikasi web presensi pribadi *production-grade* untuk karyawan yang membutuhkan pencatatan kehadiran mandiri yang akurat, aman, dan siap audit. Dilengkapi dengan landing page publik mobile-first, jam digital tersinkronisasi waktu server (WIB), validasi radius geofence kantor, dashboard admin analitik dengan grafik Chart.js, serta export laporan PDF A4 siap cetak dan CSV.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-v18%2B-green.svg)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%20%7C%2017-blue.svg)](https://www.postgresql.org/)
+[![Supabase](https://img.shields.io/badge/Database-Supabase-emerald.svg)](https://supabase.com/)
+[![Vue 3](https://img.shields.io/badge/Frontend-Vue%203%20%2B%20Vite-42b883.svg)](https://vuejs.org/)
+[![PWA Ready](https://img.shields.io/badge/PWA-Ready-purple.svg)](https://web.dev/progressive-web-apps/)
+
+Aplikasi web presensi mandiri (*personal attendance system*) kelas *production* yang akurat, aman, dan siap audit. Dilengkapi dengan landing page publik *mobile-first*, jam digital presisi tersinkronisasi waktu server (WIB), validasi radius geofence kantor berbasis GPS, dashboard admin analitik dengan Chart.js, ekspor laporan PDF A4 siap cetak & CSV, dukungan PWA (*installable app*), serta kompatibilitas penuh dengan **Supabase PostgreSQL**.
 
 ---
 
-## 🏛️ Arsitektur Monorepo & Keputusan Teknis
+## 🏛️ Arsitektur & Teknologi
 
-### Struktur Folder
+| Komponen | Teknologi | Deskripsi |
+| :--- | :--- | :--- |
+| **Frontend** | Vue 3 (Composition API), Vite, Tailwind CSS, Pinia | UI reaktif, glassmorphism modern, dark/light mode, mobile-first |
+| **Backend** | Node.js, Express.js | REST API arsitektural controller-service-repository |
+| **Database** | PostgreSQL (Lokal / Docker / Supabase Cloud) | Knex.js query builder & skrip migrasi/seeder otomatis |
+| **Keamanan** | JWT (HttpOnly Cookie), Bcrypt, Helmet, CORS, Rate Limiting | Perlindungan brute-force, XSS, dan CSRF |
+| **Fitur Unggulan**| PWA (Vite PWA Plugin), PDFKit (Vektor A4), Luxon (WIB) | Dapat di-install ke HP/desktop, ekspor PDF tanpa headless browser |
+
+### Struktur Direktori
 ```
-e-pres/
+LogBook/
 ├── docker-compose.yml              # Konfigurasi container PostgreSQL 16
 ├── package.json                    # Script root monorepo (concurrent dev, migrate, test)
-├── README.md                       # Dokumentasi lengkap proyek
+├── README.md                       # Dokumentasi resmi proyek
+├── .gitignore                      # Proteksi file rahasia (.env, keys, node_modules)
 ├── server/                         # Backend API (Node.js + Express.js)
-│   ├── knexfile.js                 # Konfigurasi Knex untuk database
-│   ├── .env.example / .env         # Environment variables server
+│   ├── knexfile.js                 # Konfigurasi database Knex (Local & Supabase SSL)
+│   ├── .env.example / .env         # Konfigurasi kredensial server
 │   ├── src/
-│   │   ├── config/                 # Konfigurasi database & environment
+│   │   ├── config/                 # Konfigurasi database & env
 │   │   ├── db/
 │   │   │   ├── migrations/         # Migrasi skema database PostgreSQL
-│   │   │   └── seeds/              # Seeder admin, jadwal, settings, hari libur & data 1 bulan
-│   │   ├── middleware/             # Auth JWT, rate limit, validasi Zod, central error handler
-│   │   ├── repositories/           # Akses query database terpusat
-│   │   ├── services/               # Logika bisnis: hitung keterlambatan, lembur, PDFKit
-│   │   ├── controllers/            # Controller penanganan HTTP request/response
-│   │   ├── routes/                 # Definisi rute Express (/api/auth, /attendance, dll.)
+│   │   │   └── seeds/              # Seeder admin, jadwal, settings, & hari libur
+│   │   ├── middleware/             # Auth JWT, rate limit, validasi Zod, error handler
+│   │   ├── repositories/           # Layer akses query database terpusat
+│   │   ├── services/               # Logika bisnis: keterlambatan, lembur, PDF generator
+│   │   ├── controllers/            # Penanganan HTTP request/response
+│   │   ├── routes/                 # Routing Express (/api/auth, /api/attendance, dll.)
 │   │   ├── utils/                  # Helper Luxon Asia/Jakarta, rumus Haversine Geolocation
-│   │   ├── validations/            # Skema validasi Zod
-│   │   ├── app.js                  # Konfigurasi Express app, CORS ketat, Helmet
+│   │   ├── validations/            # Skema validasi data request (Zod)
+│   │   ├── app.js                  # Setup Express, CORS, Helmet, Cookie-parser
 │   │   └── server.js               # Entrypoint HTTP server
 │   └── tests/
-│       ├── unit/                   # Unit test Vitest untuk perhitungan jam kerja & status
-│       └── integration/            # Integration test Supertest untuk API flow
-└── client/                         # Frontend SPA (Vue 3 + Vite + Tailwind CSS)
-    ├── vite.config.js              # Proxy ke backend /api
-    ├── tailwind.config.js          # Brand palette & modern typography
-    ├── src/
-    │   ├── assets/                 # Tailwind directives, glassmorphism & glow styles
-    │   ├── components/             # ClockWidget, Navbar, StatCard, ModalDialog, Toast
-    │   ├── router/                 # Vue Router + navigation guards (auth/guest)
-    │   ├── stores/                 # Pinia stores: auth, attendance (sinkron offset jam server), toast
-    │   ├── services/               # Axios client dengan auto-refresh token queue pada 401
-    │   └── views/                  # LandingView, LoginView, Dashboard (Summary, List, Settings, Audit)
+│       ├── unit/                   # Unit test Vitest (kalkulasi jam kerja, lembur, toleransi)
+│       └── integration/            # Integration test Supertest (alur API lengkap)
+└── client/                         # Frontend SPA & PWA (Vue 3 + Vite + Tailwind CSS)
+    ├── vite.config.js              # Proxy backend & konfigurasi Vite PWA
+    ├── tailwind.config.js          # Brand palette, radius, dan styling
+    ├── public/                     # Manifest web & ikon PWA (192x192, 512x512)
+    └── src/
+        ├── assets/                 # Gaya CSS, glassmorphism & glow effects
+        ├── components/             # ClockWidget, Navbar, StatCard, ModalDialog, Toast
+        ├── layouts/                # Layout shell dashboard & publik
+        ├── router/                 # Vue Router + navigation guards (auth/guest)
+        ├── stores/                 # Pinia: auth, attendance, theme, toast, pwa
+        ├── services/               # Axios client dengan interceptor & auto-refresh token
+        └── views/                  # LandingView, LoginView, Dashboard (Summary, List, Settings, Audit)
 ```
-
-### Penjelasan Keputusan Teknis Penting
-1. **Knex.js (Akses Data)**: *Knex.js dipilih karena ringan, memiliki footprint memori sangat rendah, memberikan kontrol querybuilder dan raw SQL presisi (seperti `INSERT ... ON CONFLICT`), serta skrip migrasi JS yang mudah diaudit tanpa beban Prisma runtime engine.*
-2. **PDFKit (Laporan PDF)**: *PDFKit dipilih karena murni JavaScript tanpa ketergantungan Chromium headless (Puppeteer) yang boros memori ratusan MB, menghasilkan dokumen A4 vektor presisi, performa kilat, dan dapat langsung di-stream ke HTTP response.*
-3. **Luxon (Waktu & Timezone)**: *Seluruh kalkulasi dan offset waktu dipatok pada zona waktu `Asia/Jakarta` (WIB, UTC+7). Waktu presensi diambil dari server, mencegah manipulasi jam lokal perangkat pengguna.*
-4. **Keamanan**: *Password di-hash dengan `bcryptjs`, JWT access token berumur pendek (15m) + refresh token tersimpan di cookie `httpOnly` (`SameSite=Strict`), Express Rate Limiting pada endpoint login & presensi, Helmet security headers, dan CORS terisolasi.*
 
 ---
 
 ## ⚙️ Persyaratan Sistem
-- Node.js LTS (v18, v20, atau v22+)
-- PostgreSQL 16 (atau melalui Docker Compose)
-- npm v9+
+- **Node.js**: Versi LTS 18.x, 20.x, atau 22.x+
+- **NPM**: Versi 9.x+
+- **Database**:
+  - Pilihan 1: **Supabase** (PostgreSQL Cloud gratis - Sangat direkomendasikan untuk deployment)
+  - Pilihan 2: **Docker Compose**
+  - Pilihan 3: **PostgreSQL Lokal**
 
 ---
 
-## 🚀 Panduan Instalasi & Menjalankan Aplikasi
+## 🚀 Panduan Memulai Cepat (Quick Start)
 
-### 1. Salin Environment Variables
+### 1. Klon Repositori
+```bash
+git clone https://github.com/tyasnurtaufiq/LogBook.git
+cd LogBook
+```
+
+### 2. Instal Seluruh Dependensi (Root, Client, & Server)
+```bash
+npm run install:all
+```
+
+### 3. Konfigurasi Environment Variable
+Salin file template konfigurasi di dalam folder `server`:
 ```bash
 cd server
 cp .env.example .env
 ```
-Isi konfigurasi database di `server/.env` jika berbeda dengan default:
+
+Buka file `server/.env` dan tentukan database yang digunakan:
+
+#### Opsi A: Menggunakan Supabase (Rekomendasi Cloud)
+Gunakan connection pooler Supabase (mode Session, port 5432) yang mendukung IPv4 & IPv6:
+```env
+NODE_ENV=development
+PORT=5000
+CLIENT_URL=http://localhost:5173
+
+# Format: postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql://postgres.novlhygrbzrnclxbmzro:YOUR_PASSWORD@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres
+
+JWT_ACCESS_SECRET=your_super_secret_access_jwt_key
+JWT_REFRESH_SECRET=your_super_secret_refresh_jwt_key
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+TIMEZONE=Asia/Jakarta
+```
+
+#### Opsi B: Menggunakan Docker Compose Lokal
+Jalankan container PostgreSQL lokal:
+```bash
+# Dari root direktori proyek
+docker-compose up -d
+```
+Lalu konfigurasi `server/.env`:
 ```env
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=epres_db
-JWT_ACCESS_SECRET=epres_super_secret_access_jwt_key_2026_wib_secure
-JWT_REFRESH_SECRET=epres_super_secret_refresh_jwt_key_2026_wib_secure
-TIMEZONE=Asia/Jakarta
+DB_SSL=false
 ```
 
-### 2. Jalankan PostgreSQL
-Opsi A: Menggunakan Docker Compose (Direktori Root)
-```bash
-docker-compose up -d
-```
-Opsi B: Menggunakan PostgreSQL lokal di sistem Anda (Pastikan database `epres_db` sudah dibuat).
-
-### 3. Instal Dependensi Seluruh Proyek
-Dari folder root:
-```bash
-npm run install:all
-```
+---
 
 ### 4. Eksekusi Migrasi & Seeder Database
-Dari folder root:
+Dari direktori root proyek:
 ```bash
+# Jalankan migrasi tabel
 npm run migrate
+
+# Masukkan data bawaan (admin, jadwal, hari libur)
 npm run seed
 ```
-> **Akun Default Seeder:**
-> - Email: `admin@epres.local`
-> - Password: `Password123!`
 
-### 5. Jalankan Aplikasi (Mode Development)
-Dari folder root untuk menjalankan Server dan Client sekaligus:
+> 🔑 **Kredensial Default Administrator:**
+> - **Email**: `admin@epres.local`
+> - **Password**: `Password123!`
+
+---
+
+### 5. Jalankan Aplikasi
+Jalankan server backend dan client frontend secara bersamaan dengan satu perintah:
 ```bash
 npm run dev
 ```
-Atau jalankan terpisah di dua terminal:
-- **Terminal 1 (Backend Server):** `npm run dev:server` (berjalan di `http://localhost:5000`)
-- **Terminal 2 (Frontend Client):** `npm run dev:client` (berjalan di `http://localhost:5173`)
 
-Buka browser Anda di: **`http://localhost:5173`**
+Aplikasi dapat langsung diakses di browser:
+- **Frontend App**: [http://localhost:5173](http://localhost:5173)
+- **Backend API**: [http://localhost:5000](http://localhost:5000)
 
 ---
 
-## 🧪 Menjalankan Automated Tests
+## 🧪 Pengujian Otomatis (Automated Tests)
 
-Aplikasi dilengkapi unit test (perhitungan jam kerja, lembur, hari libur, toleransi, timezone) dan integration test (login, token, presensi manual, penolakan presensi ganda, export PDF/CSV):
-
+Aplikasi memiliki rangkaian pengujian unit dan integrasi dengan **Vitest** dan **Supertest**:
 ```bash
+# Jalankan test suite
 npm run test:server
 ```
 
+Cakupan pengujian:
+- ✅ Perhitungan jam kerja, toleransi keterlambatan, dan lembur otomatis.
+- ✅ Deteksi hari libur nasional & jadwal hari kerja fleksibel.
+- ✅ Alur autentikasi JWT (Login, Refresh Token, Logout).
+- ✅ Validasi larangan presensi duplikat per tanggal (409 Conflict).
+- ✅ Pembuatan laporan PDF dan CSV.
+
 ---
 
-## 📋 Fitur Utama & Panduan Penggunaan
+## 📋 Fitur Utama Sistem
 
-### 1. Landing Page (`/`)
-- Jam digital real-time (WIB) tersinkronisasi dengan offset waktu server.
-- Tombol **Absen Datang** (hanya aktif jika belum absen hari ini).
-- Tombol **Absen Pulang** (hanya aktif jika sudah absen datang dan belum pulang).
-- Proteksi double-click dan validasi server-side unik per tanggal.
-- Kartu konfirmasi instan setelah absen (waktu tercatat, durasi kerja, status, dan lembur).
-- Validasi lokasi geofence kantor (menggunakan rumus Haversine jika diaktifkan di Pengaturan).
-- 5 Riwayat kehadiran terakhir.
+### 1. Halaman Presensi Publik (`/`)
+- **Waktu Server Presisi**: Jam digital tersinkronisasi langsung dengan offset server WIB untuk mencegah manipulasi waktu lokal perangkat.
+- **Action Button Cerdas**: Tombol *Absen Datang* dan *Absen Pulang* beradaptasi secara otomatis berdasarkan riwayat hari ini dengan debounce anti double-click.
+- **Validasi Geofencing**: Deteksi GPS dengan formula Haversine untuk memastikan kehadiran berada dalam radius kantor yang ditentukan.
+- **PWA Ready**: Dapat diunduh dan dipasang (*Install to Home Screen*) di perangkat Android, iOS, maupun Desktop.
 
 ### 2. Dashboard Admin (`/dashboard`)
-- **Ringkasan**: Kartu metrik kehadiran bulanan (Hari Hadir, Total Terlambat, Total Jam Lembur, Rata-rata Jam Masuk/Pulang) + Grafik Chart.js visualisasi jam kerja.
-- **Data Presensi (`/dashboard/attendances`)**:
-  - Tabel dengan pencarian, filter status, filter rentang tanggal, sorting kolom, dan pagination server-side.
-  - Tambah / Koreksi manual (misal lupa absen) dengan kolom **Alasan/Keterangan Wajib** dan penanda badge `✏️ Koreksi Manual`.
-  - Hapus data dengan dialog konfirmasi.
-- **Pengaturan (`/dashboard/settings`)**:
-  - Konfigurasi jam masuk & pulang per hari (Senin - Minggu) dan toggle hari kerja.
+- **Ringkasan Analitik**: Metrik bulanan (Total Hadir, Keterlambatan, Lembur) dan visualisasi grafik jam kerja menggunakan Chart.js.
+- **Manajemen Presensi (`/dashboard/attendances`)**:
+  - Filter rentang tanggal, pencarian nama/status, sorting kolom, dan pagination server-side.
+  - Tambah / Koreksi presensi manual (wajib menyertakan alasan & ditandai dengan badge khusus).
+- **Pengaturan Jam Kerja & Kantor (`/dashboard/settings`)**:
+  - Konfigurasi jam masuk/pulang per hari (Senin - Minggu).
   - Toleransi keterlambatan (menit).
-  - Geofencing kantor (koordinat latitude, longitude, radius meter, dan tombol deteksi GPS otomatis).
-  - Profil perusahaan & karyawan (digunakan pada kop dan tanda tangan PDF).
-  - Manajemen tanggal merah / libur nasional (otomatis dihitung full lembur).
+  - Geofence kantor (koordinat latitude, longitude, radius batas, dan detektor GPS otomatis).
+  - Profil instansi / perusahaan (tampil pada kop PDF).
+  - Manajemen kalender hari libur nasional.
 - **Audit Log (`/dashboard/audit-logs`)**:
-  - Mencatat aktor, aksi (`CHECK_IN`, `MANUAL_UPDATE`, `UPDATE_SETTING`, dll.), entitas, IP address, serta diff JSON nilai lama vs nilai baru.
+  - Jejak audit lengkap mencatat aktor, aksi, IP address, waktu, serta perbandingan *diff* JSON (sebelum & sesudah perubahan).
 
-### 3. Export Laporan (`/reports/pdf` & `/reports/csv`)
-- **Export PDF**: Layout A4 rapi, logo & header perusahaan, info karyawan, tabel lengkap kehadiran, status, lembur, keterangan, ringkasan rekapitulasi, nomor halaman, dan area tanda tangan (Karyawan & Atasan).
-- **Export CSV**: Format spreadsheet kompatibel Excel UTF-8.
+### 3. Ekspor Laporan Siap Cetak
+- **Laporan PDF**: Format A4 formal rapi siap cetak menggunakan PDFKit, dilengkapi kop perusahaan, informasi karyawan, tabel rekapitulasi, nomor halaman dinamis, serta kolom tanda tangan.
+- **Laporan CSV**: Format spreadsheet kompatibel Microsoft Excel dan Google Sheets (UTF-8).
 
 ---
 
-## 🎯 Saran Pengembangan Lanjutan
-1. **PWA (Progressive Web App)**: Tambahkan web app manifest dan service worker agar karyawan dapat meng-install aplikasi ini langsung di layar utama smartphone.
-2. **Push Notifications / Pengingat Absen**: Integrasikan Web Push API untuk mengirimkan notifikasi pengingat absen masuk pada pukul 07.15 dan absen pulang pada pukul 16.00.
-3. **Deployment Production**: Deploy backend dan frontend menggunakan Docker multi-stage build di VPS (seperti Ubuntu LTS) di balik Nginx Reverse Proxy dengan sertifikat SSL gratis dari Let's Encrypt / Certbot.
+## 🌐 Panduan Deployment Cloud
+
+### Deployment Database (Supabase)
+1. Buat proyek baru di [Supabase](https://supabase.com).
+2. Ambil connection string dari **Project Settings** > **Database** > **Connection Pooling** (Pilih mode **Session**, port `5432`).
+3. Set `DATABASE_URL` pada environment variable backend hosting Anda.
+
+### Deployment Backend (Render / Railway / Fly.io)
+1. Hubungkan repositori GitHub Anda.
+2. Atur Root Directory ke `server`.
+3. Build Command: `npm install`
+4. Start Command: `node src/server.js` (atau jalankan migrasi saat release: `npx knex migrate:latest && node src/server.js`).
+5. Tambahkan Environment Variables dari file `server/.env`.
+
+### Deployment Frontend (Vercel / Netlify)
+1. Hubungkan repositori GitHub Anda.
+2. Atur Root Directory ke `client`.
+3. Build Command: `npm run build`
+4. Output Directory: `dist`
+5. Tambahkan Environment Variable: `VITE_API_BASE_URL=https://api-anda.com`
+
+---
+
+## 📄 Lisensi
+
+Proyek ini dilisensikan di bawah [MIT License](LICENSE). Hak Cipta (c) 2026 Tyas Nur Taufiq.
