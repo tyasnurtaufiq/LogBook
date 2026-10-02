@@ -1,15 +1,27 @@
 require('dotenv').config();
 
+const getDatabaseConnection = (isProduction = false) => {
+  if (process.env.DATABASE_URL) {
+    return {
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false }
+    };
+  }
+
+  return {
+    host: process.env.DB_HOST || (isProduction ? undefined : '127.0.0.1'),
+    port: Number(process.env.DB_PORT) || 5432,
+    user: process.env.DB_USER || (isProduction ? undefined : 'postgres'),
+    password: process.env.DB_PASSWORD || (isProduction ? undefined : 'postgres'),
+    database: process.env.DB_NAME || (isProduction ? undefined : 'epres_db'),
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+  };
+};
+
 module.exports = {
   development: {
     client: 'pg',
-    connection: {
-      host: process.env.DB_HOST || '127.0.0.1',
-      port: Number(process.env.DB_PORT) || 5432,
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_NAME || 'epres_db'
-    },
+    connection: getDatabaseConnection(false),
     pool: {
       min: 2,
       max: 10
@@ -45,14 +57,7 @@ module.exports = {
   },
   production: {
     client: 'pg',
-    connection: {
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT) || 5432,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
-    },
+    connection: getDatabaseConnection(true),
     pool: {
       min: 2,
       max: 20
