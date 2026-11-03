@@ -10,7 +10,7 @@
           <div class="hidden sm:block">
             <span class="font-bold text-white text-sm tracking-tight">LogBook</span>
             <span class="text-[10px] font-medium text-slate-500 ml-1.5 bg-slate-800/60 px-1.5 py-0.5 rounded-md border border-slate-700/30">
-              v1.0
+              v1.1
             </span>
           </div>
         </router-link>
