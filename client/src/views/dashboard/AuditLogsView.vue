@@ -40,6 +40,7 @@
         >
           <option value="ALL" class="bg-slate-900 text-slate-200">Semua Entitas</option>
           <option value="ATTENDANCE" class="bg-slate-900 text-slate-200">Presensi (ATTENDANCE)</option>
+          <option value="ACTIVITY" class="bg-slate-900 text-slate-200">Kegiatan Harian (ACTIVITY)</option>
           <option value="SETTING" class="bg-slate-900 text-slate-200">Pengaturan (SETTING)</option>
           <option value="WORK_SCHEDULES" class="bg-slate-900 text-slate-200">Jadwal Kerja (WORK_SCHEDULES)</option>
           <option value="HOLIDAY" class="bg-slate-900 text-slate-200">Hari Libur (HOLIDAY)</option>

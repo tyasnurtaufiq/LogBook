@@ -2,11 +2,11 @@ const { Client } = require('pg');
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 
 const localConfig = {
-  host: 'localhost',
-  port: 5432,
-  user: 'postgres',
-  password: 'su' + '200497',
-  database: 'epres_db'
+  host: process.env.DB_HOST || 'localhost',
+  port: Number(process.env.DB_PORT) || 5432,
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'su' + '200497',
+  database: process.env.DB_NAME || 'epres_db'
 };
 
 const supabaseConnectionString = process.env.DATABASE_URL || 'postgresql://postgres.novlhygrbzrnclxbmzro:SuL0gBo0k2026@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres';
@@ -29,6 +29,7 @@ async function migrateData() {
     // Urutan pembersihan tabel di Supabase (child ke parent)
     const tablesToClean = [
       'audit_logs',
+      'activities',
       'attendances',
       'holidays',
       'settings',
@@ -38,8 +39,12 @@ async function migrateData() {
 
     console.log('\n🧹 Membersihkan data dummy di Supabase...');
     for (const table of tablesToClean) {
-      await supabaseClient.query(`DELETE FROM "${table}"`);
-      console.log(`   - Data tabel ${table} dibersihkan`);
+      try {
+        await supabaseClient.query(`DELETE FROM "${table}"`);
+        console.log(`   - Data tabel ${table} dibersihkan`);
+      } catch (cleanErr) {
+        console.warn(`   ⚠️ Tabel ${table} belum ada atau tidak dapat dibersihkan: ${cleanErr.message}`);
+      }
     }
 
     // Urutan migrasi tabel (parent ke child)
@@ -49,49 +54,56 @@ async function migrateData() {
       'settings',
       'holidays',
       'attendances',
+      'activities',
       'audit_logs'
     ];
 
     console.log('\n📦 Menyalin data asli dari Local ke Supabase...');
     for (const table of tablesToMigrate) {
-      const { rows } = await localClient.query(`SELECT * FROM "${table}" ORDER BY id ASC`);
-      console.log(`\n➡️  Tabel "${table}": Memindahkan ${rows.length} baris data...`);
+      try {
+        const { rows } = await localClient.query(`SELECT * FROM "${table}" ORDER BY id ASC`);
+        console.log(`\n➡️  Tabel "${table}": Memindahkan ${rows.length} baris data...`);
 
-      if (rows.length === 0) continue;
+        if (rows.length === 0) continue;
 
-      // Ambil nama kolom
-      const columns = Object.keys(rows[0]);
-      const quotedColumns = columns.map(c => `"${c}"`).join(', ');
+        // Ambil nama kolom
+        const columns = Object.keys(rows[0]);
+        const quotedColumns = columns.map(c => `"${c}"`).join(', ');
 
-      for (const row of rows) {
-        const values = columns.map(c => {
-          const val = row[c];
-          if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
-            return JSON.stringify(val);
-          }
-          return val;
-        });
-        const placeholders = columns.map((_, idx) => `$${idx + 1}`).join(', ');
-        const insertQuery = `INSERT INTO "${table}" (${quotedColumns}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`;
-        await supabaseClient.query(insertQuery, values);
-      }
+        for (const row of rows) {
+          const values = columns.map(c => {
+            const val = row[c];
+            if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
+              return JSON.stringify(val);
+            }
+            return val;
+          });
+          const placeholders = columns.map((_, idx) => `$${idx + 1}`).join(', ');
+          const insertQuery = `INSERT INTO "${table}" (${quotedColumns}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`;
+          await supabaseClient.query(insertQuery, values);
+        }
 
-      // Reset sequence jika kolom 'id' ada
-      if (columns.includes('id')) {
-        await supabaseClient.query(`
-          SELECT setval(
-            pg_get_serial_sequence('"${table}"', 'id'),
-            COALESCE((SELECT MAX(id) FROM "${table}"), 1)
-          )
-        `);
-        console.log(`   ✓ Sequence "${table}_id_seq" disinkronkan`);
+        // Reset sequence jika kolom 'id' ada
+        if (columns.includes('id')) {
+          await supabaseClient.query(`
+            SELECT setval(
+              pg_get_serial_sequence('"${table}"', 'id'),
+              COALESCE((SELECT MAX(id) FROM "${table}"), 1)
+            )
+          `);
+          console.log(`   ✓ Sequence "${table}_id_seq" disinkronkan`);
+        }
+      } catch (migrateErr) {
+        console.warn(`   ⚠️ Tabel ${table} dilewati: ${migrateErr.message}`);
       }
     }
 
     console.log('\n🎉 MIGRASI SUKSES! Verifikasi ringkasan data di Supabase:');
     for (const table of tablesToMigrate) {
-      const res = await supabaseClient.query(`SELECT COUNT(*) FROM "${table}"`);
-      console.log(`   - ${table}: ${res.rows[0].count} data`);
+      try {
+        const res = await supabaseClient.query(`SELECT COUNT(*) FROM "${table}"`);
+        console.log(`   - ${table}: ${res.rows[0].count} data`);
+      } catch (_) {}
     }
 
   } catch (error) {

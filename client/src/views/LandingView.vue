@@ -148,6 +148,57 @@
           </div>
         </div>
 
+        <!-- Today Activities Widget -->
+        <div class="glass-card p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              Kegiatan Hari Ini
+            </h3>
+            <router-link
+              to="/dashboard/activities"
+              class="text-[11px] font-medium text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
+            >
+              Lihat Log
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </router-link>
+          </div>
+
+          <div v-if="todayActivities.length > 0" class="space-y-2">
+            <div
+              v-for="act in todayActivities.slice(0, 3)"
+              :key="act.id"
+              class="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] text-xs hover:bg-white/[0.04] transition-colors"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-semibold text-slate-200 truncate">{{ act.title }}</span>
+                <span
+                  class="text-[9px] font-semibold px-1.5 py-0.5 rounded-full uppercase"
+                  :class="act.status === 'SELESAI' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'"
+                >
+                  {{ act.status }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+                <span v-if="act.location" class="truncate">{{ act.location }}</span>
+                <span v-else class="italic">Kantor</span>
+                <span v-if="act.start_time" class="font-mono text-slate-400 shrink-0">{{ act.start_time }}{{ act.end_time ? ` - ${act.end_time}` : '' }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-center py-4 bg-white/[0.01] rounded-xl border border-white/[0.03]">
+            <p class="text-[11px] text-slate-500">Belum ada kegiatan yang dicatat hari ini</p>
+            <router-link
+              to="/dashboard/activities"
+              class="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 mt-1.5"
+            >
+              + Tambah Kegiatan
+            </router-link>
+          </div>
+        </div>
+
         <!-- Confirmation Alert -->
         <transition
           enter-active-class="transition duration-300 ease-out"
@@ -315,6 +366,7 @@ const notes = ref('');
 const confirmation = ref(null);
 const allAttendances = ref([]);
 const selectedRecord = ref(null);
+const todayActivities = ref([]);
 
 const summaryStats = ref({
   totalDaysPresent: 0,
@@ -506,7 +558,17 @@ const handleCheckOut = async () => {
 };
 
 const refreshData = async () => {
-  await Promise.all([attendanceStore.fetchOverview(), fetchAllRecords(), fetchStats()]);
+  const fetchTodayActivities = async () => {
+    try {
+      const res = await api.get('/activities/today');
+      if (res.data?.success) {
+        todayActivities.value = res.data.data || [];
+      }
+    } catch (_) {
+      todayActivities.value = [];
+    }
+  };
+  await Promise.all([attendanceStore.fetchOverview(), fetchAllRecords(), fetchStats(), fetchTodayActivities()]);
 };
 
 const downloadReport = async (type) => {

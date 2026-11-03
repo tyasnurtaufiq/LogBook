@@ -3,11 +3,13 @@ const router = express.Router();
 
 const authRoutes = require('./auth.routes');
 const attendanceRoutes = require('./attendance.routes');
+const activityRoutes = require('./activity.routes');
 const settingRoutes = require('./setting.routes');
 const reportRoutes = require('./report.routes');
 
 router.use('/auth', authRoutes);
 router.use('/attendance', attendanceRoutes);
+router.use('/activities', activityRoutes);
 router.use('/settings', settingRoutes);
 router.use('/reports', reportRoutes);
 

@@ -5,8 +5,8 @@ import api from '../services/api';
  * Uses Axios with responseType: 'blob' which integrates with auth interceptors
  * and handles token refresh automatically.
  *
- * @param {string} endpoint - e.g. '/reports/pdf' or '/reports/csv'
- * @param {Object} params   - Query parameters like { from, to, month }
+ * @param {string} endpoint - e.g. '/reports/pdf', '/reports/csv', '/reports/activities/pdf', etc.
+ * @param {Object} params   - Query parameters like { from, to, month, status }
  * @param {'pdf' | 'csv'} type - File type
  */
 export async function downloadReportFile(endpoint, params = {}, type = 'pdf') {
@@ -19,7 +19,8 @@ export async function downloadReportFile(endpoint, params = {}, type = 'pdf') {
   }
 
   const mimeType = type === 'pdf' ? 'application/pdf' : 'text/csv; charset=utf-8';
-  const defaultFilename = `Laporan_Presensi_${new Date().toISOString().split('T')[0]}.${type}`;
+  const prefix = cleanEndpoint.includes('activities') ? 'Laporan_Kegiatan' : 'Laporan_Presensi';
+  const defaultFilename = `${prefix}_${new Date().toISOString().split('T')[0]}.${type}`;
 
   try {
     const response = await api.get(cleanEndpoint, {
@@ -32,7 +33,7 @@ export async function downloadReportFile(endpoint, params = {}, type = 'pdf') {
 
     const blobData = response.data;
     if (!blobData || blobData.size === 0) {
-      throw new Error('File hasil generate kosong (0 byte). Silakan periksa data presensi Anda.');
+      throw new Error('File hasil generate kosong (0 byte). Silakan periksa data Anda.');
     }
 
     // Determine filename from Content-Disposition header
@@ -84,9 +85,10 @@ export async function downloadReportFile(endpoint, params = {}, type = 'pdf') {
  * Opens printable HTML report in a new browser tab/window
  * which auto-triggers the print dialog (for Save as PDF or physical print).
  *
- * @param {Object} params - { from, to, month, autoprint }
+ * @param {Object} params - { from, to, month, status, autoprint }
+ * @param {string} endpoint - e.g. '/reports/html' or '/reports/activities/html'
  */
-export async function openReportPrint(params = {}) {
+export async function openReportPrint(params = {}, endpoint = '/reports/html') {
   // Proactively verify / refresh token before opening the print tab
   try {
     await api.get('/auth/me');
@@ -108,13 +110,18 @@ export async function openReportPrint(params = {}) {
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
     .join('&');
 
+  let cleanEndpoint = endpoint;
+  if (cleanEndpoint.startsWith('/api/')) {
+    cleanEndpoint = cleanEndpoint.substring(4);
+  } else if (!cleanEndpoint.startsWith('/')) {
+    cleanEndpoint = '/' + cleanEndpoint;
+  }
+
   const apiBase = (api.defaults.baseURL || '/api').replace(/\/+$/, '');
-  const url = `${apiBase}/reports/html?${queryString}`;
+  const url = `${apiBase}${cleanEndpoint}?${queryString}`;
   const win = window.open(url, '_blank');
   if (!win) {
     window.location.href = url;
   }
   return true;
 }
-
-

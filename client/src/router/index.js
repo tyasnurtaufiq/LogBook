@@ -5,6 +5,7 @@ import LandingView from '../views/LandingView.vue';
 import LoginView from '../views/LoginView.vue';
 import SummaryView from '../views/dashboard/SummaryView.vue';
 import AttendanceListView from '../views/dashboard/AttendanceListView.vue';
+import ActivityListView from '../views/dashboard/ActivityListView.vue';
 import SettingsView from '../views/dashboard/SettingsView.vue';
 import AuditLogsView from '../views/dashboard/AuditLogsView.vue';
 
@@ -32,6 +33,12 @@ const routes = [
     name: 'dashboard-attendances',
     component: AttendanceListView,
     meta: { requiresAuth: true, title: 'Data Presensi • LogBook' }
+  },
+  {
+    path: '/dashboard/activities',
+    name: 'dashboard-activities',
+    component: ActivityListView,
+    meta: { requiresAuth: true, title: 'Kegiatan Harian • LogBook' }
   },
   {
     path: '/dashboard/settings',

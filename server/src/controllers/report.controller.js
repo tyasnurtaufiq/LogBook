@@ -1,7 +1,9 @@
 const AttendanceRepository = require('../repositories/attendance.repository');
 const AttendanceService = require('../services/attendance.service');
+const ActivityRepository = require('../repositories/activity.repository');
 const SettingRepository = require('../repositories/setting.repository');
 const PdfReportService = require('../services/pdfReport.service');
+const ActivityReportService = require('../services/activityReport.service');
 const { getNow, formatDate } = require('../utils/time');
 const { DateTime } = require('luxon');
 
@@ -33,6 +35,10 @@ class ReportController {
 
     return { from, to };
   }
+
+  // ==========================================
+  // ATTENDANCE REPORTS
+  // ==========================================
 
   /**
    * GET /api/reports/pdf?month=YYYY-MM or ?from=YYYY-MM-DD&to=YYYY-MM-DD
@@ -179,6 +185,175 @@ class ReportController {
       const autoPrint = req.query.autoprint !== 'false';
 
       const htmlContent = PdfReportService.generateHtmlReport({
+        records,
+        summary: stats,
+        companyInfo,
+        startDate: effectiveStart,
+        endDate: effectiveEnd,
+        autoPrint
+      });
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.status(200).send(htmlContent);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ==========================================
+  // ACTIVITIES REPORTS
+  // ==========================================
+
+  /**
+   * GET /api/reports/activities/pdf
+   */
+  static async exportActivitiesPdf(req, res, next) {
+    try {
+      const now = getNow();
+      const defaultStart = now.startOf('month').toFormat('yyyy-MM-dd');
+      const defaultEnd = now.endOf('month').toFormat('yyyy-MM-dd');
+
+      const { from, to } = ReportController._resolveDateRange(req);
+      const status = req.query.status || 'ALL';
+
+      const user = await AttendanceService.getTargetUser(req.user?.id);
+      const companyInfo = await SettingRepository.getByKey('company_info');
+
+      const records = await ActivityRepository.findByDateRange(user.id, from, to, status);
+      const stats = await ActivityRepository.getSummaryStats({
+        userId: user.id,
+        startDate: from,
+        endDate: to
+      });
+
+      let effectiveStart = from;
+      let effectiveEnd = to;
+      if (!effectiveStart && records.length > 0) {
+        effectiveStart = formatDate(records[0].activity_date) || defaultStart;
+      }
+      if (!effectiveEnd && records.length > 0) {
+        effectiveEnd = formatDate(records[records.length - 1].activity_date) || defaultEnd;
+      }
+      if (!effectiveStart) effectiveStart = defaultStart;
+      if (!effectiveEnd) effectiveEnd = defaultEnd;
+
+      const filename = `Laporan_Kegiatan_${effectiveStart}_sd_${effectiveEnd}.pdf`;
+
+      const pdfBuffer = await ActivityReportService.generatePdfBuffer({
+        records,
+        summary: stats,
+        companyInfo,
+        startDate: effectiveStart,
+        endDate: effectiveEnd
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Length');
+
+      return res.status(200).send(pdfBuffer);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/reports/activities/csv
+   */
+  static async exportActivitiesCsv(req, res, next) {
+    try {
+      const now = getNow();
+      const defaultStart = now.startOf('month').toFormat('yyyy-MM-dd');
+      const defaultEnd = now.endOf('month').toFormat('yyyy-MM-dd');
+
+      const { from, to } = ReportController._resolveDateRange(req);
+      const status = req.query.status || 'ALL';
+
+      const user = await AttendanceService.getTargetUser(req.user?.id);
+      const companyInfo = await SettingRepository.getByKey('company_info');
+
+      const records = await ActivityRepository.findByDateRange(user.id, from, to, status);
+      const stats = await ActivityRepository.getSummaryStats({
+        userId: user.id,
+        startDate: from,
+        endDate: to
+      });
+
+      let effectiveStart = from;
+      let effectiveEnd = to;
+      if (!effectiveStart && records.length > 0) {
+        effectiveStart = formatDate(records[0].activity_date) || defaultStart;
+      }
+      if (!effectiveEnd && records.length > 0) {
+        effectiveEnd = formatDate(records[records.length - 1].activity_date) || defaultEnd;
+      }
+      if (!effectiveStart) effectiveStart = defaultStart;
+      if (!effectiveEnd) effectiveEnd = defaultEnd;
+
+      const csvContent = ActivityReportService.generateCsvReport({
+        records,
+        summary: stats,
+        companyInfo,
+        startDate: effectiveStart,
+        endDate: effectiveEnd
+      });
+
+      const filename = `Laporan_Kegiatan_${effectiveStart}_sd_${effectiveEnd}.csv`;
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+
+      return res.status(200).send('\uFEFF' + csvContent);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/reports/activities/html
+   */
+  static async exportActivitiesHtml(req, res, next) {
+    try {
+      const now = getNow();
+      const defaultStart = now.startOf('month').toFormat('yyyy-MM-dd');
+      const defaultEnd = now.endOf('month').toFormat('yyyy-MM-dd');
+
+      const { from, to } = ReportController._resolveDateRange(req);
+      const status = req.query.status || 'ALL';
+
+      const user = await AttendanceService.getTargetUser(req.user?.id);
+      const companyInfo = await SettingRepository.getByKey('company_info');
+
+      const records = await ActivityRepository.findByDateRange(user.id, from, to, status);
+      const stats = await ActivityRepository.getSummaryStats({
+        userId: user.id,
+        startDate: from,
+        endDate: to
+      });
+
+      let effectiveStart = from;
+      let effectiveEnd = to;
+      if (!effectiveStart && records.length > 0) {
+        effectiveStart = formatDate(records[0].activity_date) || defaultStart;
+      }
+      if (!effectiveEnd && records.length > 0) {
+        effectiveEnd = formatDate(records[records.length - 1].activity_date) || defaultEnd;
+      }
+      if (!effectiveStart) effectiveStart = defaultStart;
+      if (!effectiveEnd) effectiveEnd = defaultEnd;
+
+      const autoPrint = req.query.autoprint !== 'false';
+
+      const htmlContent = ActivityReportService.generateHtmlReport({
         records,
         summary: stats,
         companyInfo,

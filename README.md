@@ -189,6 +189,11 @@ Cakupan pengujian:
 - **Manajemen Presensi (`/dashboard/attendances`)**:
   - Filter rentang tanggal, pencarian nama/status, sorting kolom, dan pagination server-side.
   - Tambah / Koreksi presensi manual (wajib menyertakan alasan & ditandai dengan badge khusus).
+- **Laporan Kegiatan Harian (`/dashboard/activities`)**:
+  - Pencatatan tugas kerja harian (nama kegiatan, jam mulai/selesai, lokasi/sub bagian, deskripsi kendala, hasil/output pekerjaan, dan status Selesai/Proses/Pending).
+  - Filter pencarian instan, filter status, filter bulan & rentang tanggal kustom, pagination server-side.
+  - Widget ringkas kegiatan hari ini di halaman utama (landing page).
+  - Ekspor lengkap: PDF A4 formal via PDFKit, CSV kompatibel Excel, dan pratinjau cetak HTML.
 - **Pengaturan Jam Kerja & Kantor (`/dashboard/settings`)**:
   - Konfigurasi jam masuk/pulang per hari (Senin - Minggu).
   - Toleransi keterlambatan (menit).
