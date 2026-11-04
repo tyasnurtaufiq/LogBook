@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const getDatabaseConnection = (isProduction = false) => {
   if (process.env.DATABASE_URL) {

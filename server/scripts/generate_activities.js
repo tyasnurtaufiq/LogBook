@@ -1,3 +1,5 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const db = require('../src/config/database');
 const { DateTime } = require('luxon');
 
@@ -410,9 +412,9 @@ async function run() {
     holidayMap.set(dStr, h.name);
   });
 
-  // 3. Periksa dan lengkapi presensi s/d hari ini (3 November 2026)
-  const todayStr = '2026-11-03';
-  let curAtt = DateTime.fromISO('2026-10-03', { zone: ZONE });
+  // 3. Periksa dan lengkapi presensi s/d hari ini
+  const todayStr = DateTime.now().setZone(ZONE).toFormat('yyyy-MM-dd');
+  let curAtt = DateTime.fromISO('2026-10-01', { zone: ZONE });
   const endAtt = DateTime.fromISO(todayStr, { zone: ZONE });
   const newAttendances = [];
 
