@@ -135,16 +135,16 @@ class ActivityReportService {
           doc.text(formattedDateShort, colX.tanggal, y + 8);
           doc.text(waktuStr, colX.waktu, y + 8);
 
-          doc.font('Helvetica-Bold').text(titleStr, colX.kegiatan, y + 8);
+          doc.font('Helvetica-Bold').text(titleStr, colX.kegiatan, y + 8, { width: 135, align: 'justify' });
           doc.font('Helvetica');
           if (row.description && row.description.length > 0) {
             const descShort = row.description.length > 40 ? row.description.substring(0, 40) + '...' : row.description;
-            doc.fontSize(7).fillColor('#64748b').text(descShort, colX.kegiatan, y + 17);
+            doc.fontSize(7).fillColor('#64748b').text(descShort, colX.kegiatan, y + 17, { width: 135, align: 'justify' });
           }
 
           doc.fontSize(8).fillColor('#0f172a');
-          doc.text(locStr, colX.lokasi, y + 8);
-          doc.text(outStr, colX.output, y + 8);
+          doc.text(locStr, colX.lokasi, y + 8, { width: 75 });
+          doc.text(outStr, colX.output, y + 8, { width: 85, align: 'justify' });
 
           // Status Badge text
           if (statusStr === 'SELESAI') {
@@ -324,7 +324,8 @@ class ActivityReportService {
         : '—';
 
       const titleStr = row.title || '—';
-      const descHtml = row.description ? `<div class="text-muted" style="margin-top:2px;">${row.description}</div>` : '';
+      const descHtml = row.description ? `<div class="text-muted cell-justify" style="margin-top:2px;">${row.description}</div>` : '';
+      const notesHtml = row.notes ? `<div class="text-muted cell-justify" style="margin-top:2px; font-style:italic;">Catatan: ${row.notes}</div>` : '';
       const locStr = row.location || '—';
       const outputStr = row.output || '—';
 
@@ -342,12 +343,13 @@ class ActivityReportService {
           <td class="text-mono">${formattedDateShort}</td>
           <td>${dayName}</td>
           <td class="text-center text-mono font-medium">${waktuStr}</td>
-          <td>
+          <td class="cell-justify">
             <strong>${titleStr}</strong>
             ${descHtml}
+            ${notesHtml}
           </td>
           <td>${locStr}</td>
-          <td>${outputStr}</td>
+          <td class="cell-justify">${outputStr}</td>
           <td class="text-center">${statusBadge}</td>
           <td class="ttd-cell"></td>
         </tr>
@@ -517,6 +519,12 @@ class ActivityReportService {
     .text-mono { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
     .font-medium { font-weight: 600; }
     .text-muted { color: #64748b; font-size: 8px; }
+    .cell-justify, .text-justify {
+      text-align: justify;
+      text-justify: inter-word;
+      text-align-last: left;
+      hyphens: auto;
+    }
     .badge {
       display: inline-block;
       padding: 2px 6px;
