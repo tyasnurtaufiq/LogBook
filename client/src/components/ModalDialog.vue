@@ -9,7 +9,7 @@
       leave-to-class="opacity-0"
     >
       <div
-        v-if="modelValue"
+        v-if="isOpen"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
         @click.self="closeOnBackdrop && close()"
       >
@@ -22,16 +22,17 @@
           leave-to-class="opacity-0 scale-95"
         >
           <div
-            v-if="modelValue"
-            class="relative w-full max-w-lg glass-card p-6 text-slate-100 overflow-hidden"
+            v-if="isOpen"
+            class="relative w-full max-w-lg glass-card p-6 text-slate-100 overflow-hidden max-h-[90vh] flex flex-col"
           >
             <!-- Header -->
-            <div class="flex items-center justify-between pb-4 border-b border-white/[0.06]">
+            <div class="flex items-center justify-between pb-4 border-b border-white/[0.06] shrink-0">
               <h3 class="text-sm font-bold text-white flex items-center gap-2">
                 <slot name="title">{{ title }}</slot>
               </h3>
               <button
                 @click="close"
+                type="button"
                 class="text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/[0.06] transition-all"
               >
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
@@ -39,12 +40,12 @@
             </div>
 
             <!-- Body -->
-            <div class="py-4">
+            <div class="py-4 overflow-y-auto custom-scrollbar flex-1">
               <slot></slot>
             </div>
 
             <!-- Footer -->
-            <div v-if="$slots.footer" class="pt-4 border-t border-white/[0.06] flex justify-end gap-2.5">
+            <div v-if="$slots.footer" class="pt-4 border-t border-white/[0.06] flex justify-end gap-2.5 shrink-0">
               <slot name="footer"></slot>
             </div>
           </div>
@@ -55,16 +56,22 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
+
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
+  show: { type: Boolean, default: false },
   title: { type: String, default: '' },
   closeOnBackdrop: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['update:modelValue', 'close']);
+const emit = defineEmits(['update:modelValue', 'update:show', 'close']);
+
+const isOpen = computed(() => Boolean(props.modelValue || props.show));
 
 const close = () => {
   emit('update:modelValue', false);
+  emit('update:show', false);
   emit('close');
 };
 </script>

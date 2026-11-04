@@ -353,7 +353,7 @@
 
     <!-- MODAL CREATE / EDIT -->
     <ModalDialog
-      :show="showFormModal"
+      v-model="showFormModal"
       :title="isEditing ? 'Ubah Catatan Kegiatan' : 'Tambah Kegiatan Harian'"
       @close="closeFormModal"
     >
@@ -412,9 +412,25 @@
             <input
               v-model="form.location"
               type="text"
-              placeholder="Contoh: Sub Bagian Keuangan / Lantai 2"
+              list="authorized-locations"
+              placeholder="Pilih atau ketik lokasi kewenangan..."
               class="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-slate-700/50 text-slate-200 text-xs focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50 placeholder-slate-600"
             />
+            <datalist id="authorized-locations">
+              <option value="Ruang Server Utama" />
+              <option value="Ruang Server Lantai 3" />
+              <option value="Ruang Sub Bagian Program" />
+              <option value="Sub Bagian Umum" />
+              <option value="Sub Bagian Keuangan" />
+              <option value="Rack Wallmount Lantai 1" />
+              <option value="Rack Wallmount Lantai 2" />
+              <option value="Bidang DalOps" />
+              <option value="Bidang Lalu Lintas" />
+              <option value="Bidang Angkutan" />
+              <option value="Bidang Sarana Prasarana" />
+              <option value="Balai PTPAR" />
+              <option value="Perpustakaan" />
+            </datalist>
           </div>
 
           <div>
@@ -489,7 +505,7 @@
 
     <!-- MODAL CONFIRM DELETE -->
     <ModalDialog
-      :show="showDeleteModal"
+      v-model="showDeleteModal"
       title="Hapus Catatan Kegiatan"
       @close="showDeleteModal = false"
     >
@@ -526,7 +542,7 @@
 
     <!-- MODAL EXPORT -->
     <ModalDialog
-      :show="showExportModal"
+      v-model="showExportModal"
       title="Ekspor Laporan Kegiatan Harian"
       @close="showExportModal = false"
     >
